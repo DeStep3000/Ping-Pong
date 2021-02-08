@@ -53,7 +53,7 @@ def load_image(name, color_key=None):
 
 
 def start_screen():
-    pygame.mixer.music.load('data/стартовое окно.mp3')
+    pygame.mixer.music.load('data/стартовое окно2.mp3')
     fon = pygame.transform.scale(load_image('zastavka.jpg'), screen_size)
     screen.blit(fon, (0, 0))
     pygame.mixer.music.play(-1)
@@ -475,7 +475,7 @@ class Game(object):
 
             pygame.time.delay(1000)
 
-        pygame.mixer.music.load('data/фон.mp3')
+        pygame.mixer.music.load('data/фон2.mp3')
         pygame.mixer.music.play(-1)
         pygame.mixer.music.set_volume(0.4)
 
