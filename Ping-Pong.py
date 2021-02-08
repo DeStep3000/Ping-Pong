@@ -1,17 +1,18 @@
-import pygame
-import sys
-import random
 import math
 import os
+import random
+import sys
+
+import pygame
 
 SCREEN_WIDTH = 700
 SCREEN_HEIGHT = 550
 PADDLE_WIDTH = 13
 PADDLE_HEIGHT = 90
-BALL_SPEED = 7
-BALL_RADIUS = 10
-PLAYER_SPEED = 320
-ENEMY_SPEED = 300
+BALL_SPEED = 4
+BALL_RADIUS = 11
+PLAYER_SPEED = 420
+ENEMY_SPEED = 390
 GAP = 20
 
 #         R    G    B
@@ -26,7 +27,7 @@ BGCOLOR = BLACK
 PLAYER_SIDE = 'left'
 TOP_SCORE = 5
 COUNTDOWN = 3
-FPS = 45
+FPS = 60
 screen_size = (700, 550)
 clock = pygame.time.Clock()
 screen = pygame.display.set_mode(screen_size)
@@ -45,21 +46,27 @@ def load_image(name, color_key=None):
         print('Не удаётся загрузить:', name)
         raise SystemExit(message)
     if color_key is not None:
-        if color_key is -1:
+        if color_key == -1:
             color_key = image.get_at((0, 0))
         image.set_colorkey(color_key)
     return image
 
 
 def start_screen():
-    fon = pygame.transform.scale(load_image('zastavka_0.jpg'), screen_size)
+    pygame.mixer.music.load('data/стартовое окно.mp3')
+    fon = pygame.transform.scale(load_image('zastavka.jpg'), screen_size)
     screen.blit(fon, (0, 0))
+    pygame.mixer.music.play(-1)
 
     while True:
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN or \
                     event.type == pygame.MOUSEBUTTONDOWN:
                 return
+            elif event.type == pygame.QUIT or (
+                    event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+                pygame.quit()
+                sys.exit()
         pygame.display.flip()
         clock.tick(FPS)
 
@@ -82,14 +89,22 @@ class Text(object):
 
         self.image = self._create_surface()
         self.rect = self.image.get_rect()
-        if x: self.rect.x = x
-        if y: self.rect.y = y
-        if top: self.rect.top = top
-        if bottom: self.rect.bottom = bottom
-        if left: self.rect.left = left
-        if right: self.rect.right = right
-        if centerx: self.rect.centerx = centerx
-        if centery: self.rect.centery = centery
+        if x:
+            self.rect.x = x
+        if y:
+            self.rect.y = y
+        if top:
+            self.rect.top = top
+        if bottom:
+            self.rect.bottom = bottom
+        if left:
+            self.rect.left = left
+        if right:
+            self.rect.right = right
+        if centerx:
+            self.rect.centerx = centerx
+        if centery:
+            self.rect.centery = centery
 
     def _create_surface(self):
         return self._font.render(self._value, True, self._color)
@@ -120,7 +135,8 @@ class Ball(pygame.sprite.Sprite):
 
         self.vector = vector
         self.game = game
-        self.start_to_the = 'left'
+        stor = ('right', 'left')
+        self.start_to_the = random.choice(stor)
         self.reinit()
 
     def _draw_ball(self):
@@ -203,7 +219,8 @@ class Ball(pygame.sprite.Sprite):
         paddles = [player, enemy]
 
         for paddle in paddles:
-            if self.rect.colliderect(paddle.rect): return paddle
+            if self.rect.colliderect(paddle.rect):
+                return paddle
 
 
 class Paddle(pygame.sprite.Sprite):
@@ -312,11 +329,9 @@ class Vec2D(object):
     def __str__(self):
         return "%s, %s" % (self.x, self.y)
 
-    @classmethod
     def from_points(cls, P1, P2):
         return cls(P2[0] - P1[0], P2[1] - P1[1])
 
-    @classmethod
     def from_magn_and_angle(cls, magn, angle):
         x = magn * math.cos(angle)
         y = magn * math.sin(angle)
@@ -326,7 +341,7 @@ class Vec2D(object):
         return math.sqrt(self.x ** 2 + self.y ** 2)
 
     def get_xy(self):
-        return (self.x, self.y)
+        return self.x, self.y
 
 
 class Game(object):
@@ -339,6 +354,8 @@ class Game(object):
 
         screen = pygame.display.get_surface()
         self.background = pygame.Surface(screen.get_size())
+        self.e = 0
+        self.p = 0
 
         self.reinit()
 
@@ -379,7 +396,7 @@ class Game(object):
                         self.player.movepos = [0, 0]
                         self.player.state = 'still'
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_p:
+                    if event.key == pygame.K_SPACE:
                         if not paused:
 
                             paused = True
@@ -437,6 +454,10 @@ class Game(object):
             pygame.display.flip()
 
     def countdown_animation(self):
+        pygame.mixer.music.stop()
+        pygame.mixer.music.load('data/обратный отсчет3.mp3')
+        pygame.mixer.music.play(0)
+
         font = pygame.font.Font(None, 100)
 
         count = COUNTDOWN
@@ -454,32 +475,74 @@ class Game(object):
 
             pygame.time.delay(1000)
 
+        pygame.mixer.music.load('data/фон.mp3')
+        pygame.mixer.music.play(-1)
+        pygame.mixer.music.set_volume(0.4)
+
     def game_won_animation(self):
+        pygame.mixer.music.stop()
 
         screen.blit(self.background, self.ball.rect, self.ball.rect)
 
         if self.winner == 'player':
             message = 'You win!'
             color = BLUE
+            music = 'Победа.mp3'
         elif self.winner == 'enemy':
             message = 'You Lose!'
             color = RED
+            music = 'Проигрыш.mp3'
 
         winner_text = Text(message, 128, color,
                            centerx=SCREEN_WIDTH / 2, centery=SCREEN_HEIGHT / 2)
+        pygame.mixer.music.load('data/{}'.format(music))
+        pygame.mixer.music.play(0)
         screen.blit(winner_text.image, winner_text.rect)
         pygame.display.flip()
 
-        pygame.time.delay(4000)
+        pygame.time.delay(6000)
         screen.blit(self.background, winner_text.rect, winner_text.rect)
 
     def increase_score(self, side):
         if self.player.side == side:
             self.enemy.score += 1
             self.winner = self.enemy.side
+            hit_no = pygame.mixer.Sound('data/не попал.mp3')
+            hit_no.play()
+            pygame.time.delay(2000)
+
+            # левая линия
+            pygame.draw.line(self.background, BLUE, (GAP, 0), (GAP, SCREEN_HEIGHT), 2)
+
+            # правая линия
+            pygame.draw.line(self.background, RED,
+                             (SCREEN_WIDTH - GAP, 0),
+                             (SCREEN_WIDTH - GAP, SCREEN_HEIGHT), 2)
+
+            # средняя линия
+            pygame.draw.line(self.background, WHITE,
+                             (SCREEN_WIDTH / 2, 0),
+                             (SCREEN_WIDTH / 2, SCREEN_HEIGHT), 2)
+            pygame.draw.circle(self.background, RED, (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2), 50, 3)
         else:
+            hit_yes = pygame.mixer.Sound('data/попал.mp3')
+            hit_yes.play()
             self.player.score += 1
             self.winner = self.player.side
+            pygame.time.delay(2000)
+            # левая линия
+            pygame.draw.line(self.background, BLUE, (GAP, 0), (GAP, SCREEN_HEIGHT), 2)
+
+            # правая линия
+            pygame.draw.line(self.background, RED,
+                             (SCREEN_WIDTH - GAP, 0),
+                             (SCREEN_WIDTH - GAP, SCREEN_HEIGHT), 2)
+
+            # средняя линия
+            pygame.draw.line(self.background, WHITE,
+                             (SCREEN_WIDTH / 2, 0),
+                             (SCREEN_WIDTH / 2, SCREEN_HEIGHT), 2)
+            pygame.draw.circle(self.background, RED, (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2), 50, 3)
 
     def _draw_background(self):
         self.background.fill(BGCOLOR)
@@ -502,12 +565,13 @@ class Game(object):
         pygame.draw.line(self.background, WHITE,
                          (SCREEN_WIDTH / 2, 0),
                          (SCREEN_WIDTH / 2, SCREEN_HEIGHT), 2)
+        pygame.draw.circle(self.background, RED, (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2), 50, 3)
 
 
 if __name__ == '__main__':
-    start_screen()
     pygame.init()
-    screen = pygame.display.set_mode(SCREEN_SIZE)
     pygame.display.set_caption('Pong')
+    start_screen()
+    screen = pygame.display.set_mode(SCREEN_SIZE)
     pong = Game()
     pong.main()
